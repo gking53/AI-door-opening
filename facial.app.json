@@ -1,0 +1,192 @@
+{
+  "name": "facial",
+  "modules": [
+    "viewers",
+    "//apps/eclipseworkspace/facial:tracker_module",
+    "//apps/eclipseworkspace/facial:cloud_module"
+  ],
+  "graph": {
+    "nodes": [
+      {
+        "name": "entrance_camera",
+        "subgraph": "apps/eclipseworkspace/facial/camera.subgraph.json"
+      },
+      {
+        "name": "exit_camera",
+        "subgraph": "apps/eclipseworkspace/facial/camera.subgraph.json"
+      },
+      {
+        "name": "tracker",
+        "components": [
+          {
+            "name": "MessageLedger",
+            "type": "isaac::alice::MessageLedger"
+          },
+          {
+            "name": "tracker",
+            "type": "isaac::Tracker"
+          }
+        ]
+      },
+      {
+        "name": "cloud",
+        "components": [
+          {
+            "name": "MessageLedger",
+            "type": "isaac::alice::MessageLedger"
+          },
+          {
+            "name": "storage",
+            "type": "isaac::CloudStorage"
+          }
+        ]
+      },
+      {
+        "name": "viewers",
+        "components": [
+          {
+            "name": "MessageLedger",
+            "type": "isaac::alice::MessageLedger"
+          },
+          {
+            "name": "ImageViewer",
+            "type": "isaac::viewers::ImageViewer"
+          },
+          {
+            "name": "depth",
+            "type": "isaac::viewers::DepthCameraViewer"
+          },
+          {
+            "name": "DetectionsViewer",
+            "type": "isaac::viewers::DetectionsViewer"
+          },
+          {
+            "name": "Detections3Viewer",
+            "type": "isaac::viewers::Detections3Viewer"
+          },
+          {
+            "name": "Detections3Viewer2",
+            "type": "isaac::viewers::Detections3Viewer"
+          },
+          {
+            "name": "TensorViewer",
+            "type": "isaac::viewers::TensorViewer"
+          }
+        ]
+      }
+    ],
+    "edges": [
+      {
+        "source": "exit_camera.subgraph/interface/color",
+        "target": "viewers/ImageViewer/image"
+      },
+      {
+        "source": "exit_camera.subgraph/interface/color_intrinsics",
+        "target": "viewers/ImageViewer/intrinsics"
+      },
+      {
+        "source": "entrance_camera.subgraph/interface/embedding",
+        "target": "viewers/TensorViewer/tensor"
+      },
+      {
+        "source": "entrance_camera.subgraph/interface/embedding",
+        "target": "cloud/storage/embeddings"
+      },
+      {
+        "source": "exit_camera.subgraph/interface/2d_detections",
+        "target": "viewers/DetectionsViewer/detections"
+      },
+      {
+        "source": "entrance_camera.subgraph/interface/3d_detections",
+        "target": "viewers/Detections3Viewer/detections"
+      },      {
+        "source": "exit_camera.subgraph/interface/3d_detections",
+        "target": "viewers/Detections3Viewer2/detections"
+      },
+      {
+        "source": "entrance_camera.subgraph/interface/3d_detections",
+        "target": "tracker/tracker/enterance_detections"
+      },
+      {
+        "source": "exit_camera.subgraph/interface/3d_detections",
+        "target": "tracker/tracker/exit_detections"
+      },
+      {
+        "source": "exit_camera.subgraph/interface/depth",
+        "target": "viewers/depth/depth"
+      },
+      {
+        "source": "exit_camera.subgraph/interface/depth_intrinsics",
+        "target": "viewers/depth/intrinsics"
+      }
+    ]
+  },
+  "config": {
+    "entrance_camera.camera": {
+      "realsense": {
+        "serial_number": "913522070296"
+      }
+    },
+    "exit_camera.camera": {
+      "realsense": {
+        "serial_number": "103422073313"
+      }
+    },
+    "entrance_camera.camera_pose_init": {
+      "camera_pose_init": {
+        "lhs_frame": "world",
+        "rhs_frame": "enterance_camera",
+        "pose": {
+          "translation": [0.0, 0.0, 0.0],
+          "rotation": { "roll_degrees": 0 }
+        }
+      }
+    },
+    "exit_camera.camera_pose_init": {
+      "camera_pose_init": {
+        "lhs_frame": "world",
+        "rhs_frame": "exit_camera",
+        "pose": {
+          "translation": [0.11, -3.75, 0.43],
+          "rotation": { 
+            "roll_degrees": 0,
+            "yaw_degrees": 0 
+          }
+        }
+      }
+    },
+    "cloud": {
+      "storage": {
+        "file_name": "logical-signer-319519-93814db53e97.json",
+        "bucket_name": "ese_embeddings"
+      }
+    },
+    "viewers": {
+      "ImageViewer": {
+        "camera_name": "Realsense"
+      },
+      "TensorViewer": {
+        "tile_columns": 10
+      },
+      "Detections3Viewer": {
+        "radius": 0.5
+      },
+      "Detections3Viewer2": {
+        "radius": 0.5
+      },
+      "depth": {
+        "min_visualization_depth": 0.2,
+        "max_visualization_depth": 5.0,
+        "camera_name": "Realsense",
+        "colormap": [
+          [128,   0,   0],
+          [255,   0,   0],
+          [255, 255,   0],
+          [0,   255, 255],
+          [0,     0, 255],
+          [0,     0, 128]
+        ]
+      }
+    }
+  }
+}

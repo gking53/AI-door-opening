@@ -1,0 +1,364 @@
+{
+    "modules": [
+        "realsense",
+        "ml",
+        "sight",
+        "utils",
+        "//apps/eclipseworkspace/facial:camera_module"
+    ],
+    "graph": {
+      "nodes": [
+        {
+          "name": "subgraph",
+          "components": [
+            {
+              "name": "message_ledger",
+              "type": "isaac::alice::MessageLedger"
+            },
+            {
+              "name": "interface",
+              "type": "isaac::alice::Subgraph"
+            }
+          ]
+        },
+        {
+            "name": "camera",
+            "components": [
+              {
+                "name": "MessageLedger",
+                "type": "isaac::alice::MessageLedger"
+              },
+              {
+                "name": "realsense",
+                "type": "isaac::RealsenseCamera"
+              }
+            ]
+          },
+          {
+            "name": "camera_pose_init",
+            "start_order": -200,
+            "components": [
+              {
+                "name": "camera_pose_init",
+                "type": "isaac::alice::PoseInitializer"
+              }
+            ]
+          },
+          {
+            "name": "projection_pose_init",
+            "start_order": -200,
+            "components": [
+              {
+                "name": "projection_pose_init",
+                "type": "isaac::alice::PoseInitializer"
+              }
+            ]
+          },
+          {
+            "name": "detection_inference",
+            "components": [
+              {
+                "name": "isaac.alice.MessageLedger",
+                "type": "isaac::alice::MessageLedger"
+              },
+              {
+                "name": "TensorRTInference",
+                "type": "isaac::ml::TensorRTInference"
+              }
+            ]
+          },
+          {
+            "name": "detection_decoder",
+            "components": [
+              {
+                "name": "isaac.alice.MessageLedger",
+                "type": "isaac::alice::MessageLedger"
+              },
+              {
+                "name": "decoder",
+                "type": "isaac::CudaDetection"
+              }
+            ]
+          },
+          {
+            "name": "detection_encoder",
+            "components": [
+              {
+                "name": "ledger",
+                "type": "isaac::alice::MessageLedger"
+              },
+              {
+                "name": "ColorCameraEncoderCuda",
+                "type": "isaac::ml::ColorCameraEncoderCuda"
+              }
+            ]
+          },
+          {
+            "name": "recog_inference",
+            "components": [
+              {
+                "name": "isaac.alice.MessageLedger",
+                "type": "isaac::alice::MessageLedger"
+              },
+              {
+                "name": "TensorRTInference",
+                "type": "isaac::ml::TensorRTInference"
+              }
+            ]
+          },
+          {
+            "name": "crop_downsample",
+            "components": [
+              {
+                "name": "MessageLedger",
+                "type": "isaac::alice::MessageLedger"
+              },
+              {
+                "name": "ImageDetectionExtraction",
+                "type": "isaac::ml::ImageDetectionExtraction"
+              }
+            ]
+          },
+          {
+            "name": "synchronizer",
+            "components": [
+              {
+                "name": "MessageLedger",
+                "type": "isaac::alice::MessageLedger"
+              },
+              {
+                "name": "synchronizer",
+                "type": "isaac::Synchronizer"
+              }
+            ]
+          },
+          {
+            "name": "recog_decoder",
+            "components": [
+              {
+                "name": "MessageLedger",
+                "type": "isaac::alice::MessageLedger"
+              },
+              {
+                "name": "recog_decoder",
+                "type": "isaac::RecogDecoder"
+              }
+            ]
+          },
+          {
+            "name": "DetectionUnprojection",
+            "components": [
+              {
+                "name": "MessageLedger",
+                "type": "isaac::alice::MessageLedger"
+              },
+              {
+                "name": "DetectionUnprojection",
+                "type": "isaac::utils::DetectionUnprojection"
+              }
+            ]
+          }
+      ],
+      "edges": [
+        {
+            "source": "camera/realsense/color",
+            "target": "synchronizer/synchronizer/rgb"
+          },
+          {
+            "source": "synchronizer/synchronizer/detections_rgb",
+            "target": "detection_encoder/ColorCameraEncoderCuda/rgb_image"
+          },
+          {
+            "source": "detection_encoder/ColorCameraEncoderCuda/tensor",
+            "target": "detection_inference/TensorRTInference/input"
+          },
+          {
+            "source": "detection_inference/TensorRTInference/scores",
+            "target": "detection_decoder/decoder/scores"
+          },
+          {
+            "source": "detection_inference/TensorRTInference/boxes",
+            "target": "detection_decoder/decoder/boxes"
+          },
+          {
+            "source": "detection_decoder/decoder/detections",
+            "target": "synchronizer/synchronizer/detections"
+          },
+          {
+            "source": "synchronizer/synchronizer/sync_detections",
+            "target": "crop_downsample/ImageDetectionExtraction/detections"
+          },
+          {
+            "source": "synchronizer/synchronizer/sync_rgb",
+            "target": "crop_downsample/ImageDetectionExtraction/image"
+          },
+          {
+            "source": "crop_downsample/ImageDetectionExtraction/tensor",
+            "target": "recog_decoder/recog_decoder/input"
+          },
+          {
+            "source": "recog_decoder/recog_decoder/output",
+            "target": "recog_inference/TensorRTInference/input"
+          },
+          {
+            "source": "recog_inference/TensorRTInference/embedding",
+            "target": "recog_decoder/recog_decoder/embeddings"
+          },
+          {
+            "source": "camera/realsense/depth",
+            "target": "synchronizer/synchronizer/depth"
+          },
+          {
+            "source": "camera/realsense/depth_intrinsics",
+            "target": "synchronizer/synchronizer/intrinsics"
+          },
+          {
+            "source": "synchronizer/synchronizer/sync_detections",
+            "target": "DetectionUnprojection/DetectionUnprojection/detections"
+          },
+          {
+            "source": "synchronizer/synchronizer/sync_depth",
+            "target": "DetectionUnprojection/DetectionUnprojection/depth"
+          },
+          {
+            "source": "synchronizer/synchronizer/sync_intrinsics",
+            "target": "DetectionUnprojection/DetectionUnprojection/intrinsics"
+          },
+          {
+            "source": "camera/realsense/color",
+            "target": "subgraph/interface/color"
+          },
+          {
+            "source": "camera/realsense/color_intrinsics",
+            "target": "subgraph/interface/color_intrinsics"
+          },
+          {
+            "source": "recog_inference/TensorRTInference/embedding",
+            "target": "subgraph/interface/embedding"
+          },
+          {
+            "source": "synchronizer/synchronizer/sync_detections",
+            "target": "subgraph/interface/2d_detections"
+          },
+          {
+            "source": "DetectionUnprojection/DetectionUnprojection/detections_with_poses",
+            "target": "subgraph/interface/3d_detections"
+          },
+          {
+            "source": "synchronizer/synchronizer/sync_depth",
+            "target": "subgraph/interface/depth"
+          },
+          {
+            "source": "synchronizer/synchronizer/sync_intrinsics",
+            "target": "subgraph/interface/depth_intrinsics"
+          }
+      ]
+    },
+    "config": {
+        "camera": {
+          "realsense": {
+            "rows": 480,
+            "cols": 640,
+            "depth_framerate": 30,
+            "ir_framerate": 15,
+            "rgb_framerate": 30,
+            "enable_depth": true,
+            "enable_ir_stereo": false,
+            "enable_rgb": true,
+            "enable_depth_laser": true,
+            "align_to_color": true,
+            "frame_queue_size": 2,
+            "auto_exposure_priority": false
+          }
+        },
+        "detection_encoder": {
+          "ColorCameraEncoderCuda": {
+            "tensor_index_order": "201",
+            "pixel_normalization_mode": "Unit",
+            "rows": 480,
+            "cols": 640
+          }
+        },
+        "detection_inference": {
+          "TensorRTInference": {
+            "model_file_path": "apps/eclipseworkspace/facial/version-RFB-640.onnx",
+            "engine_file_path": "/tmp/version-RFB-640.plan",
+            "max_workspace_size": 671088640,
+            "inference_mode": "Float32",
+            "verbose": false,
+            "input_tensor_info": [
+              {
+                "operation_name": "input",
+                "channel": "input",
+                "dims": [3, 480, 640]
+              }
+            ],
+            "output_tensor_info": [
+              {
+                "operation_name": "scores",
+                "channel": "scores",
+                "dims": [1, 17640, 2]
+              },
+              {
+                "operation_name": "boxes",
+                "channel": "boxes",
+                "dims": [1, 17640, 4]
+              }
+            ]
+          }
+        },
+        "detection_decoder": {
+          "decoder":{
+            "cols": 640,
+            "rows": 480
+          }
+        },
+        "DetectionUnprojection": {
+          "DetectionUnprojection": {
+            "roi_scale": 0.1,
+            "spread": [1,1],
+            "invalid_depth_threshold": 0.2
+          }
+        },
+        "projection_pose_init": {
+          "projection_pose_init": {
+            "lhs_frame": "robot",
+            "rhs_frame": "camera",
+            "pose": {
+              "translation": [0.0, 0.0, 0.0],
+              "rotation": { "roll_degrees": -90 }
+            }
+          }
+        },
+        "crop_downsample": {
+          "ImageDetectionExtraction": {
+            "downsample_size": [112, 112],
+            "pixel_normalization_mode": "Unit",
+            "tensor_index_order": "201"
+          }
+        },
+        "recog_inference": {
+          "TensorRTInference": {
+            "model_file_path": "apps/eclipseworkspace/facial/arcfaceresnet100-8.onnx",
+            "engine_file_path": "/tmp/arcfaceresnet100-8.plan",
+            "inference_mode": "Float32",
+            "max_workspace_size": 671088640,
+            "input_tensor_info": [
+              {
+                "operation_name": "data",
+                "channel": "input",
+                "dims": [1, 3, 112, 112]
+              }
+            ],
+            "output_tensor_info": [
+              {
+                "operation_name": "fc1",
+                "channel": "embedding",
+                "dims": [512]
+              }
+            ]
+          }
+        }
+    }
+}
+  
